@@ -1,0 +1,26 @@
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  image: node:18
+  script:
+    - apt-get update && apt-get upgrade -y && apt-get install -y git
+    - yarn
+    - yarn build
+  artifacts:
+    paths:
+    - .next/
+    expire_in: 24 hours
+  only:
+    - main
+
+deploy:
+  stage: deploy
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  script:
+    - aws s3 cp .next/ s3://$S3_BUCKET --recursive --include "*"
+    - aws cloudfront create-invalidation --distribution-id $CDN_DISTRIBUTION_ID --paths "/*"
+  only:
+    - main
